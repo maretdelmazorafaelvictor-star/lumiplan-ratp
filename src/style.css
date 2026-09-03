@@ -135,3 +135,20 @@ body {
 body:has( dialog[open] ) {
   overflow: hidden;
 }
+/* Lisibilité des formulaires : les placeholders et champs désactivés
+   étaient quasi illisibles (gris trop clair + opacité navigateur). */
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280;
+  opacity: 1;
+}
+
+select:disabled,
+input:disabled,
+textarea:disabled {
+  color: #4b5563;
+  -webkit-text-fill-color: #4b5563;
+  background-color: #ececec;
+  opacity: 1;
+  cursor: not-allowed;
+}
