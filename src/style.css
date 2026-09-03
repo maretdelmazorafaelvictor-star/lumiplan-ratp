@@ -152,3 +152,13 @@ textarea:disabled {
   opacity: 1;
   cursor: not-allowed;
 }
+
+/* Les contrôles de formulaire ont des fonds clairs imposés par l'app ;
+   on force aussi un texte sombre et un rendu clair (color-scheme) pour
+   éviter le texte quasi blanc quand le système est en thème sombre. */
+input,
+select,
+textarea {
+  color: #1a1a1a;
+  color-scheme: light;
+}
