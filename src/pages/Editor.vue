@@ -17,7 +17,7 @@ import ApiImportJourneyModal from "../components/Editor/ApiImportJourneyModal.vu
 import EditorStopList from "../components/Editor/EditorStopList.vue";
 import AutosaveRestoreModal from "../components/Editor/AutosaveRestoreModal.vue";
 import EditorTrafficInfo from "../components/Editor/EditorTrafficInfo.vue";
-import { sortedLines } from "../utils";
+import { normalizeSaveFile, SAVE_FILE_VERSION, sortedLines } from "../utils";
 import { Api } from "../api.ts";
 import NewsModal from "../components/NewsModal.vue";
 import { DEFAULT_BG_COLORS } from "../colors.ts";
@@ -175,6 +175,7 @@ const handleSelectBaseLine = (lineId: string) => {
   }
 };
 const loadData = (parsedData: SaveFile, fallbackName: string) => {
+  normalizeSaveFile(parsedData);
   _lines.value = parsedData.lines;
   desserteWithLine.value = parsedData.journey;
   messages.value = parsedData.messages || [];
@@ -259,7 +260,7 @@ const getExportData = (): string =>
     {
       header: {
         dateTime: new Date().toISOString(),
-        version: "1.0.0",
+        version: SAVE_FILE_VERSION,
         name: saveFileName.value || "Sauvegarde",
       },
       lines: lines.value,

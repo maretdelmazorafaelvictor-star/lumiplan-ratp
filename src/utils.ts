@@ -1,5 +1,5 @@
 import { useClock } from "./composables/useClock";
-import { Line, Mode } from "./types";
+import { CustomIndexShape, Line, Mode, SaveFile } from "./types";
 
 export const getSecondesFromDate = (
   dateString: string,
@@ -77,3 +77,51 @@ export const sortedLines = (lines: Line[]): Line[] => {
     return aIndex - bIndex;
   });
 };
+
+/* ///////////// SaveFile v2 (pictos personnalisés BULB-MAX) ///////////// */
+
+
+/** Version écrite dans l'en-tête des sauvegardes de l'éditeur. */
+export const SAVE_FILE_VERSION = "2.0.0";
+
+const VALID_SHAPES: CustomIndexShape[] = [
+  "CIRCLE",
+  "ROUNDED_SQUARE",
+  "LINES",
+  "RECTANGLE",
+  "CUT_RECTANGLE",
+];
+
+/**
+ * Nettoie le champ customIndex d'une ligne : s'il est absent (sauvegarde
+ * v1) on ne touche à rien ; s'il est présent mais invalide, on le retire
+ * pour retomber sur le rendu standard plutôt que de casser l'affichage.
+ */
+function sanitizeLineCustomIndex(line: Line | null | undefined): void {
+  if (!line || !line.customIndex) return;
+  const ci = line.customIndex;
+  const isValid =
+    typeof ci === "object" &&
+    typeof ci.index === "string" &&
+    ci.index.length > 0 &&
+    typeof ci.color === "string" &&
+    ci.color.length > 0 &&
+    VALID_SHAPES.includes(ci.shape);
+  if (!isValid) {
+    delete line.customIndex;
+  }
+}
+
+/**
+ * Normalise un SaveFile après JSON.parse, quel que soit son numéro de
+ * version (v1 sans pictos personnalisés, v2 avec). À appeler avant
+ * d'injecter les données dans l'éditeur.
+ */
+export function normalizeSaveFile(data: SaveFile): SaveFile {
+  (data.lines || []).forEach(sanitizeLineCustomIndex);
+  sanitizeLineCustomIndex(data.journey?.line);
+  data.journey?.desserte?.stops?.forEach((s) => {
+    (s.stop?.connectedLines || []).forEach(sanitizeLineCustomIndex);
+  });
+  return data;
+}
