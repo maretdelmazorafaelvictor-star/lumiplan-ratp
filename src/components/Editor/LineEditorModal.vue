@@ -82,7 +82,13 @@ const handleLinkedLineChange = () => {
           <option :value="Mode.TRANSILIEN">Transilien</option>
           <option :value="Mode.METRO">Métro</option>
           <option :value="Mode.TRAM">Tramway</option>
+          <option :value="Mode.TRAM_TRAIN">Tram-train</option>
           <option :value="Mode.CABLE">Téléphérique</option>
+          <option :value="Mode.VAL">VAL</option>
+          <option :value="Mode.FUNICULAR">Funiculaire</option>
+          <option :value="Mode.GONDOLA">Télécabine</option>
+          <option :value="Mode.BOAT">Navette fluviale</option>
+          <option :value="Mode.BRT">BHNS</option>
           <option :value="Mode.BUS">Bus</option>
           <option :value="Mode.NOCTILIEN">Noctilien</option>
           <option :value="Mode.BUS_REMPLACEMENT">Bus de remplacement</option>

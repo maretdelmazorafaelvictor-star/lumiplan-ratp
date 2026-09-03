@@ -48,6 +48,12 @@ export enum Mode {
   TER = "TER",
   TRANSILIEN = "TRANSILIEN",
   CABLE = "CABLE",
+  VAL = "VAL",
+  FUNICULAR = "FUNICULAR",
+  GONDOLA = "GONDOLA",
+  TRAM_TRAIN = "TRAM_TRAIN",
+  BRT = "BRT",
+  BOAT = "BOAT",
 }
 export type CustomIndexShape =
   | "CIRCLE"

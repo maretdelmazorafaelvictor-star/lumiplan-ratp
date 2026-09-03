@@ -143,7 +143,18 @@ const lineLogoComponent = computed(() => {
   if ([Mode.METRO].includes(props.line.mode)) {
     return MetroLogo;
   }
-  if ([Mode.TRAM, Mode.CABLE].includes(props.line.mode)) {
+  if (
+    [
+      Mode.TRAM,
+      Mode.CABLE,
+      Mode.TRAM_TRAIN,
+      Mode.VAL,
+      Mode.FUNICULAR,
+      Mode.GONDOLA,
+      Mode.BRT,
+      Mode.BOAT,
+    ].includes(props.line.mode)
+  ) {
     return TramLogo;
   }
   return null;
