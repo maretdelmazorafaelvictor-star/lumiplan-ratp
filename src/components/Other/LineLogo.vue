@@ -8,6 +8,7 @@ import TrainLogo from "./TrainLogo.vue";
 import MetroLogo from "./MetroLogo.vue";
 import TramLogo from "./TramLogo.vue";
 import BusRemplacementLineLogo from "./BusRemplacementLineLogo.vue";
+import CustomLineLogo from "./CustomLineLogo.vue";
 
 interface Props {
   line: Line;
@@ -149,7 +150,16 @@ const lineLogoComponent = computed(() => {
 });
 </script>
 <template>
-  <div v-if="lineLogoComponent" :class="className">
+  <div v-if="props.line.customIndex" :class="className">
+    <CustomLineLogo
+      :data-line-mode-and-name="
+        props.line.mode.toString().toUpperCase() + ' : ' + props.line.name
+      "
+      :custom-index="props.line.customIndex"
+      :size="props.size ? props.size : '1em'"
+    />
+  </div>
+  <div v-else-if="lineLogoComponent" :class="className">
     <component
       :is="lineLogoComponent"
       :line-name="line.name"

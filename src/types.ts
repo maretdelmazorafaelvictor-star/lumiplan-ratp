@@ -49,6 +49,25 @@ export enum Mode {
   TRANSILIEN = "TRANSILIEN",
   CABLE = "CABLE",
 }
+export type CustomIndexShape =
+  | "CIRCLE"
+  | "ROUNDED_SQUARE"
+  | "LINES"
+  | "RECTANGLE"
+  | "CUT_RECTANGLE";
+
+/**
+ * Pictogramme personnalisé (importé depuis BULB-MAX).
+ * Si présent sur une Line, il remplace le rendu standard du logo.
+ */
+export interface CustomIndex {
+  shape: CustomIndexShape;
+  index: string;
+  prefix?: string;
+  suffix?: string;
+  color: string;
+}
+
 export interface Line {
   id: string;
   name: string;
@@ -56,6 +75,7 @@ export interface Line {
   textColor: string;
   mode: Mode;
   linkedLine?: Line;
+  customIndex?: CustomIndex;
 }
 
 export interface SaveFileHeader {
