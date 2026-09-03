@@ -3,7 +3,7 @@ import { computed } from "vue";
 import BusLineLogo from "./BusLineLogo.vue";
 import NoctilienLogo from "./NoctilienLogo.vue";
 import { Line, Mode } from "../../types";
-import { cleanId } from "../../utils";
+import { cleanId, publicPath } from "../../utils";
 import TrainLogo from "./TrainLogo.vue";
 import MetroLogo from "./MetroLogo.vue";
 import TramLogo from "./TramLogo.vue";
@@ -128,10 +128,10 @@ const isLineSpecial = computed(() => {
   );
 });
 const computeBackupImgLink = computed(() => {
-  return "/lines/" + props.line.name.toLowerCase().replace(/\s/g, "_") + ".svg";
+  return publicPath("/lines/" + props.line.name.toLowerCase().replace(/\s/g, "_") + ".svg");
 });
 const computeNormalImgLink = computed(() => {
-  return "/lines/" + cleanId(cleanId(props.line.id)) + ".svg";
+  return publicPath("/lines/" + cleanId(cleanId(props.line.id)) + ".svg");
 });
 const lineLogoComponent = computed(() => {
   if (isLineSpecial.value) {

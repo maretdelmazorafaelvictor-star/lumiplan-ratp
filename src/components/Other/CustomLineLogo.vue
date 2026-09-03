@@ -47,18 +47,19 @@ const shapeClass = computed(() => ({
   "cut-rectangle": props.customIndex.shape === "CUT_RECTANGLE",
 }));
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 const maskUrl = computed(() => {
   switch (props.customIndex.shape) {
     case "ROUNDED_SQUARE":
-      return "url(/masks/rounded_square.svg)";
+      return `url(${BASE}/masks/rounded_square.svg)`;
     case "LINES":
-      return "url(/masks/lines.svg)";
+      return `url(${BASE}/masks/lines.svg)`;
     case "RECTANGLE":
-      return "url(/masks/rectangle.svg)";
     case "CUT_RECTANGLE":
-      return "url(/masks/rectangle.svg)";
+      return `url(${BASE}/masks/rectangle.svg)`;
     default:
-      return "url(/masks/circle.svg)";
+      return `url(${BASE}/masks/circle.svg)`;
   }
 });
 
@@ -75,6 +76,7 @@ const style = computed(() => ({
   "--picto-color": props.customIndex.color,
   "--picto-text-color": textColor.value,
   "--picto-mask": maskUrl.value,
+  "--picto-cut-mask": `url(${BASE}/masks/cut_rectangle.svg)`,
   "--picto-size": props.size ?? "1em",
 }));
 </script>
@@ -139,8 +141,8 @@ const style = computed(() => ({
   -webkit-mask-position: top;
 }
 .custom-line-logo.cut-rectangle .cut-layer {
-  mask: url(/masks/cut_rectangle.svg) no-repeat center;
-  -webkit-mask: url(/masks/cut_rectangle.svg) no-repeat center;
+  mask: var(--picto-cut-mask) no-repeat center;
+  -webkit-mask: var(--picto-cut-mask) no-repeat center;
   mask-size: 100%;
   -webkit-mask-size: 100%;
   mask-position: top;

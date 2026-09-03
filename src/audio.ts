@@ -7,7 +7,7 @@ const initialSoundState =
 const isSoundEnabledRef = ref(initialSoundState);
 
 export class AudioManager {
-  static SOUND_DIR = "/audio";
+  static SOUND_DIR = import.meta.env.BASE_URL.replace(/\/$/, "") + "/audio";
 
   static isSoundEnabled = isSoundEnabledRef;
 

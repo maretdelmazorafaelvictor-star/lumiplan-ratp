@@ -2,7 +2,7 @@
   <header class="header">
     <img
       v-if="line"
-      :src="'/modes/' + line.mode.toLowerCase() + '.svg'"
+      :src="publicPath('/modes/' + line.mode.toLowerCase() + '.svg')"
       class="mode-picto"
     />
     <LineLogo v-if="line" :line="line" class-name="picto" class="line-logo" :size="logoSize" :blink="isLimitedService" />
@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+import { publicPath } from "../utils";
 import { Line, Mode } from "../types";
 import LineLogo from "./Other/LineLogo.vue";
 import Clock from "./Other/Clock.vue";

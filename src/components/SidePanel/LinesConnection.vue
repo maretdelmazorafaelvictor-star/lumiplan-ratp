@@ -23,7 +23,7 @@
           class="mode-group"
         >
           <img
-            :src="`/modes/${mode.toString().toLowerCase()}.svg`"
+            :src="publicPath(`/modes/${mode.toString().toLowerCase()}.svg`)"
             :alt="mode.toString()"
             class="mode-logo"
           />
@@ -41,6 +41,7 @@
 import { computed } from "vue";
 import { Line, Mode } from "../../types";
 import LineLogo from "../Other/LineLogo.vue";
+import { publicPath } from "../../utils";
 import { useRoute } from "vue-router";
 import { useRotatedText } from "../../hooks/useRotatedText";
 import { CONNECTING_LINES_TEXTS } from "../../translations";

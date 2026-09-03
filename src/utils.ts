@@ -1,6 +1,12 @@
 import { useClock } from "./composables/useClock";
 import { CustomIndexShape, Line, Mode, SaveFile } from "./types";
 
+
+/** Préfixe un chemin d'asset public avec la base de déploiement
+ *  (ex. "/lumiplan-ratp/" sur GitHub Pages, "/" en local). */
+export const publicPath = (p: string): string =>
+  import.meta.env.BASE_URL.replace(/\/$/, "") + p;
+
 export const getSecondesFromDate = (
   dateString: string,
   allowNegativesValues = false,

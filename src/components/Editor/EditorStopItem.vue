@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { publicPath } from "../../utils";
 import { computed } from "vue";
 import { Line, StopWithTime, Mode } from "../../types";
 import LineLogo from "../Other/LineLogo.vue";
@@ -253,14 +254,14 @@ const processedConnections = computed(() =>
         />
         <img
           v-if="processedConnections.showSncf"
-          src="/modes/ter.svg"
+          :src="publicPath('/modes/ter.svg')"
           alt="SNCF"
           title="SNCF"
           class="generic-logo sncf-logo"
         />
         <img
           v-if="processedConnections.showGenericBus"
-          src="/modes/bus.svg"
+          :src="publicPath('/modes/bus.svg')"
           alt="BUS"
           title="Correspondances Bus"
           class="generic-logo bus-logo"
