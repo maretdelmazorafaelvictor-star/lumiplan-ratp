@@ -2,46 +2,71 @@
   <div class="desserte-overview">
     <div class="desserte-overview-content">
       <div class="header">
-        <span class="direction">
-          {{ desserte.direction }}
+        <div class="direction-container">
+          <div
+            v-if="badgesList.length > 0"
+            class="mission-badge"
+            :style="{ backgroundColor: line.color, color: line.textColor }"
+          >
+            <span v-for="badge in badgesList">
+              {{ badge }}
+            </span>
+          </div>
+          <span class="direction">
+            {{ desserte.destinationStop.stopName }}
+          </span>
+        </div>
+
+        <span
+          v-if="
+            desserte.stopTimes.length > 0 && isPassed(desserte.stopTimes[0])
+          "
+          class="provenance"
+        >
+          Origine: {{ desserte.originStop.stopName }}
         </span>
         <span class="status">{{ status }}</span>
       </div>
 
-      <div class="details-wrapper" v-if="desserte.stops.length > 1">
+      <div class="details-wrapper" v-if="desserte.stopTimes.length > 1">
         <details class="desserte">
           <summary>Voir les arrêts</summary>
           <ul class="stops-list">
             <li
-              v-for="(stopInfo, index) in desserte.stops"
-              :key="stopInfo.stop.id"
-              :data-stop-id="stopInfo.stop.id"
+              v-for="(stopTime, index) in desserte.stopTimes"
+              :key="stopTime.stopPoint.stopRef"
+              :data-stop-id="stopTime.stopPoint.stopRef"
               class="stop-item"
+              :class="{ 'passed-stop': isPassed(stopTime) }"
             >
               <div class="stop-visual">
                 <div
                   class="line top-line"
                   :class="{ hidden: index === 0 }"
-                  :style="{ backgroundColor: line.color }"
+                  :style="{
+                    backgroundColor: isPassed(stopTime) ? '' : line.color,
+                  }"
                 ></div>
-                <div class="dot" :style="{ borderColor: line.color }"></div>
+                <div
+                  class="dot"
+                  :style="{ borderColor: isPassed(stopTime) ? '' : line.color }"
+                ></div>
                 <div
                   class="line bottom-line"
-                  :class="{ hidden: index === desserte.stops.length - 1 }"
-                  :style="{ backgroundColor: line.color }"
+                  :class="{ hidden: index === desserte.stopTimes.length - 1 }"
+                  :style="{
+                    backgroundColor: isPassed(stopTime) ? '' : line.color,
+                  }"
                 ></div>
               </div>
 
               <div class="stop-content">
-                <span
-                  class="stop-name"
-                  :class="{ 'skipped-stop': stopInfo.isStopSkipped }"
-                >
-                  {{ stopInfo.stop.name }}
+                <span class="stop-name">
+                  {{ stopTime.stopPoint.stopName }}
                 </span>
-                <span class="stop-time" v-if="!stopInfo.isStopSkipped">
+                <span class="stop-time">
                   {{
-                    new Date(stopInfo.timeOfArrival).toLocaleTimeString([], {
+                    new Date(stopTime.arrivalTime).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })
@@ -104,43 +129,83 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { Desserte, Line } from "../../types";
+import { Line } from "../../types";
 import { getMinutesFromDate } from "../../utils";
+import { VehicleJourney, Status, StopTime } from "../../types";
 
 const props = defineProps<{
   line: Line;
-  desserte: Desserte;
+  desserte: VehicleJourney;
 }>();
 
+const badgesList = computed(() => {
+  const list = [];
+
+  if (
+    props.desserte.headsign &&
+    props.desserte.headsign.length <= 6 && props.desserte.shortName &&
+    !props.desserte.shortName.startsWith(props.desserte.headsign)
+  ) {
+    list.push(props.desserte.headsign);
+  }
+  if (props.desserte.shortName && props.desserte.shortName.length <= 6) {
+    list.push(props.desserte.shortName);
+  }
+  return list;
+});
+
+const isPassed = (stopTime: StopTime) => {
+  const timeToEvaluate = stopTime.departureTime || stopTime.arrivalTime;
+  if (!timeToEvaluate) return false;
+
+  // Si le temps de l'arrêt est inférieur à l'heure actuelle, il est passé.
+  return new Date(timeToEvaluate).getTime() < Date.now();
+};
+
+const firstUpcomingStop = computed(() => {
+  return props.desserte.stopTimes?.find((st) => !isPassed(st)) || null;
+});
+
 const status = computed(() => {
-  const minutes = getMinutesFromDate(props.desserte.stops[0].timeOfArrival);
-  if (props.desserte.stops[0].isFirstStop) {
+  if (!props.desserte.stopTimes || props.desserte.stopTimes.length === 0)
+    return "";
+
+  const upcomingStop = firstUpcomingStop.value;
+
+  if (!upcomingStop) {
+    return "Terminus atteint";
+  }
+  const minutes = getMinutesFromDate(upcomingStop.arrivalTime);
+
+  if (upcomingStop.status === Status.FirstStop) {
     if (minutes <= 0)
-      return "Départ imminent de " + props.desserte.stops[0].stop.name;
+      return "Départ imminent de " + upcomingStop.stopPoint.stopName;
     return (
       "Départ prévu de " +
-      props.desserte.stops[0].stop.name +
+      upcomingStop.stopPoint.stopName +
       " dans " +
       minutes +
       " min"
     );
   }
-  if (props.desserte.stops[0].isTerminus)
+
+  if (upcomingStop.status === Status.LastStop) {
     return (
-      "Prochain arrêt : " + props.desserte.stops[0].stop.name + " (terminus)"
+      "Prochain arrêt : " + upcomingStop.stopPoint.stopName + " (terminus)"
     );
-  if (minutes <= 0)
-    return "À l'approche de " + props.desserte.stops[0].stop.name;
+  }
+
+  if (minutes <= 0) return "À l'approche de " + upcomingStop.stopPoint.stopName;
+
   return (
     "Prochain arrêt : " +
-    props.desserte.stops[0].stop.name +
+    upcomingStop.stopPoint.stopName +
     " dans " +
     minutes +
     " min"
   );
 });
 </script>
-
 <style scoped>
 .desserte-overview {
   box-sizing: border-box;
@@ -151,15 +216,15 @@ const status = computed(() => {
   grid-template-columns: 1fr auto;
   gap: 1.5rem;
   background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f0f0f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #dcdde1;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .desserte-overview:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px);
 }
 
@@ -175,23 +240,44 @@ const status = computed(() => {
   gap: 4px;
 }
 
+.direction-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mission-badge {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 800;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  min-width: 40px;
+}
+
 .direction {
   font-weight: 700;
   font-size: 1.15em;
-  color: #1a1a1a;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  color: #111111;
 }
 
-.icon {
-  font-size: 0.9em;
+.provenance {
+  color: #576574;
+  font-size: 0.85em;
+  font-weight: 600;
+  font-style: italic;
 }
 
 .status {
-  color: #636e72;
+  color: #2d3436;
   font-size: 0.9em;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .details-wrapper {
@@ -201,7 +287,7 @@ const status = computed(() => {
 .desserte summary {
   cursor: pointer;
   font-weight: 600;
-  color: #005fad;
+  color: #004b8a;
   user-select: none;
   font-size: 0.95em;
   padding: 4px 0;
@@ -250,10 +336,12 @@ const status = computed(() => {
   height: 4px;
   flex-grow: 0;
 }
+
 .bottom-line {
   flex-grow: 1;
   min-height: 20px;
 }
+
 .top-line.hidden,
 .bottom-line.hidden {
   visibility: hidden;
@@ -263,21 +351,39 @@ const status = computed(() => {
   display: flex;
   flex-direction: column;
   padding-bottom: 15px;
+  transition: all 0.2s ease;
 }
 
 .stop-name {
-  font-weight: 600;
-  color: #2d3436;
+  font-weight: 700;
+  color: #1e272e;
 }
 
 .stop-time {
   font-size: 0.85em;
-  color: #636e72;
+  color: #485460;
   margin-top: 2px;
+  font-weight: 500;
 }
 
-.skipped-stop {
-  opacity: 0.4;
+.passed-stop .stop-name {
+  color: #7f8fa6;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.passed-stop .stop-time {
+  color: #7f8fa6;
+  font-size: 0.8em;
+}
+
+.passed-stop .dot {
+  border-color: #bdc3c7 !important;
+  background-color: #f1f2f6;
+}
+
+.passed-stop .line {
+  background-color: #bdc3c7 !important;
 }
 
 .actions-sidebar {
@@ -285,7 +391,7 @@ const status = computed(() => {
   flex-direction: column;
   gap: 10px;
   padding-left: 10px;
-  border-left: 1px dashed #e0e0e0;
+  border-left: 1px dashed #c8d6e5;
 }
 
 .action-btn {
@@ -340,6 +446,9 @@ const status = computed(() => {
   .stop-time {
     color: #a4b0be;
   }
+  .provenance {
+    color: #718093;
+  }
   .desserte summary {
     color: #74b9ff;
   }
@@ -348,6 +457,18 @@ const status = computed(() => {
   }
   .dot {
     background-color: #1e1e1e;
+  }
+
+  .passed-stop .stop-name,
+  .passed-stop .stop-time {
+    color: #576574;
+  }
+  .passed-stop .dot {
+    border-color: #2f3640 !important;
+    background-color: #1e1e1e;
+  }
+  .passed-stop .line {
+    background-color: #2f3640 !important;
   }
 }
 </style>

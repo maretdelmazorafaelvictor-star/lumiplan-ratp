@@ -22,38 +22,38 @@ const emit = defineEmits<{
 }>();
 
 const processConnections = (lines: Line[]) => {
-  const busLines = lines.filter(
-    (l) =>
-      (l.mode === Mode.BUS || l.mode === Mode.NOCTILIEN || l.mode=== Mode.BUS_REMPLACEMENT || l.mode === Mode.BUS_AEROPORT) &&
-      l.id !== props.route.id,
+  const filteredLines = lines.filter((l) => l.id !== props.route.id);
+
+  const groups = new Map<Mode, Line[]>();
+  filteredLines.forEach((l) => {
+    if (!groups.has(l.mode)) {
+      groups.set(l.mode, []);
+    }
+    groups.get(l.mode)!.push(l);
+  });
+
+  const isBusMode = (m: Mode) =>
+    m === Mode.BUS ||
+    m === Mode.NOCTILIEN ||
+    m === Mode.BUS_REMPLACEMENT ||
+    m === Mode.BUS_AEROPORT;
+
+  const groupedConnections = Array.from(groups.entries()).map(
+    ([mode, modeLines]) => ({
+      mode,
+      lines: sortedLines(modeLines),
+    }),
   );
-  const terLines = lines.filter((l) => l.mode === Mode.TER);
-  const otherLines = lines.filter(
-    (l) =>
-      l.mode !== Mode.BUS &&
-      l.mode !== Mode.NOCTILIEN &&
-      l.mode !== Mode.BUS_REMPLACEMENT &&
-      l.mode !== Mode.BUS_AEROPORT &&
-      l.mode !== Mode.TER &&
-      l.id !== props.route.id,
-  );
 
-  const showGenericBus =
-    busLines.length > 10 ||
-    otherLines.some((l) => [Mode.RER, Mode.TRANSILIEN].includes(l.mode));
-  const showSncf = terLines.length >= 1;
+  groupedConnections.sort((a, b) => {
+    const aIsBus = isBusMode(a.mode);
+    const bIsBus = isBusMode(b.mode);
+    if (aIsBus && !bIsBus) return 1;
+    if (!aIsBus && bIsBus) return -1;
+    return String(a.mode).localeCompare(String(b.mode));
+  });
 
-  const linesToDisplay = [...otherLines];
-
-  if (!showGenericBus) {
-    linesToDisplay.push(...busLines);
-  }
-
-  return {
-    linesToDisplay,
-    showGenericBus,
-    showSncf,
-  };
+  return groupedConnections;
 };
 
 const processedConnections = computed(() =>
@@ -69,7 +69,7 @@ const processedConnections = computed(() =>
       'is-terminus': stop.isTerminus,
     }"
   >
-    <div class="move-buttons no-print">
+    <div class="move-buttons">
       <button
         class="action-btn move-btn"
         @click.stop="emit('move-up', stop)"
@@ -139,17 +139,17 @@ const processedConnections = computed(() =>
           {{ stop.stop.name || "Arrêt à paramétrer" }}
         </span>
         <div class="icons">
-        <span
-          v-if="!stop.stop.isAccessible"
-          class="badge accessible"
-          title="Arrêt non accessible aux usagers en fauteuil roulant"
-        >
-          <img
-            class="non-accessible-stop"
-            src="../../assets/img/non-accessible-stop.png"
-            alt="Arrêt non accessible aux usagers en fauteuil roulant"
-            height="23em"
-        /></span>
+          <span
+            v-if="!stop.stop.isAccessible"
+            class="badge accessible"
+            title="Arrêt non accessible aux usagers en fauteuil roulant"
+          >
+            <img
+              class="non-accessible-stop"
+              src="../../assets/img/non-accessible-stop.png"
+              alt="Arrêt non accessible aux usagers en fauteuil roulant"
+              height="23em"
+          /></span>
           <span
             v-if="stop.stop.hasGapWhenSteppingOff"
             class="badge"
@@ -171,7 +171,7 @@ const processedConnections = computed(() =>
             v-if="
               stop.isStopSkipped || (isAfterPartialTerminus && !stop.isTerminus)
             "
-            class="badge terminus no-print"
+            class="badge terminus"
             ><i>Arrêt non desservi </i></span
           >
           <span
@@ -189,7 +189,7 @@ const processedConnections = computed(() =>
           >
         </span>
         <button
-          class="action-btn edit-btn no-print"
+          class="action-btn edit-btn"
           @click.stop="emit('edit-stop', stop)"
           title="Éditer cet arrêt"
           aria-label="Éditer cet arrêt"
@@ -214,7 +214,7 @@ const processedConnections = computed(() =>
           </svg>
         </button>
         <button
-          class="action-btn delete-btn no-print"
+          class="action-btn delete-btn"
           @click.stop="emit('delete-stop', stop)"
           title="Supprimer cet arrêt"
           aria-label="Supprimer cet arrêt"
@@ -244,28 +244,29 @@ const processedConnections = computed(() =>
         {{ stop.stop.landmarkName }}
       </div>
 
-      <div class="stop-connections" v-if="stop.stop.connectedLines.length > 0">
-        <LineLogo
-          v-for="cLine in sortedLines(processedConnections.linesToDisplay)"
-          :key="cLine.id"
-          :line="cLine"
-          class-name="stop-connection-line-logo"
-          size="1.5rem"
-        />
-        <img
-          v-if="processedConnections.showSncf"
-          :src="publicPath('/modes/ter.svg')"
-          alt="SNCF"
-          title="SNCF"
-          class="generic-logo sncf-logo"
-        />
-        <img
-          v-if="processedConnections.showGenericBus"
-          :src="publicPath('/modes/bus.svg')"
-          alt="BUS"
-          title="Correspondances Bus"
-          class="generic-logo bus-logo"
-        />
+      <div class="stop-connections" v-if="processedConnections.length > 0">
+        <div
+          v-for="group in processedConnections"
+          :key="group.mode"
+          class="connection-group"
+        >
+          <img
+            :src="publicPath(`/modes/${group.mode.toLowerCase()}.svg`)"
+            :alt="group.mode"
+            :title="group.mode"
+            class="mode-logo"
+          />
+
+          <div class="lines-wrapper">
+            <LineLogo
+              v-for="cLine in group.lines"
+              :key="cLine.id"
+              :line="cLine"
+              class-name="stop-connection-line-logo"
+              size="1.5rem"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -285,7 +286,7 @@ button.disabled,
 button:disabled {
   cursor: not-allowed;
   opacity: 0.4;
-  pointer-events: none; /* Empêche les clics accidentels */
+  pointer-events: none;
 }
 .delete-btn {
   background-color: #ff4d4f;
@@ -323,7 +324,6 @@ button:disabled {
   padding: 0.2em 0.5em;
 }
 
-/* Styles pour les boutons de déplacement à gauche */
 .move-buttons {
   display: flex;
   flex-direction: column;
@@ -393,7 +393,6 @@ button:disabled {
   font-size: 0.9rem;
   color: #495057;
 }
-
 .stop-landmark {
   font-weight: 600;
   background-color: #6e491e;
@@ -426,17 +425,29 @@ button:disabled {
 
 .stop-connections {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 8px;
-  align-items: center;
 }
 
-.generic-logo {
-  height: 1.5em;
+.connection-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.mode-logo {
+  height: 1.5rem;
   width: auto;
-  display: inline-block;
-  vertical-align: middle;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.lines-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .is-skipped .stop-node {

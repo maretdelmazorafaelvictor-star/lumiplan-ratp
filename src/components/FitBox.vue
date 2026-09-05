@@ -78,7 +78,7 @@ onUnmounted(() => {
       :class="{
         'force-width': targetRatioNumber !== null && isConstrainedByWidth,
         'force-height': targetRatioNumber !== null && !isConstrainedByWidth,
-        'full-size': targetRatioNumber === null
+        'full-size': targetRatioNumber === null,
       }"
     >
       <slot />
@@ -100,7 +100,9 @@ onUnmounted(() => {
 .fit-content {
   display: flex;
   flex-direction: column;
-  transition: width 0.15s ease, height 0.15s ease;
+  transition:
+    width 0.15s ease,
+    height 0.15s ease;
 }
 
 .force-width {

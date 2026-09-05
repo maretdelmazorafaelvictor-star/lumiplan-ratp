@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { DesserteWithLine, Line, StopWithTime } from "../../types";
 import LineLogo from "../Other/LineLogo.vue";
 import EditorStopItem from "./EditorStopItem.vue";
@@ -10,6 +10,10 @@ const props = defineProps<{
   allLines: Line[];
 }>();
 
+const areAllStopsWithCoordinates = computed(() => {
+  return props.sortedStops.every((stop) => stop.stop.lat && stop.stop.lon);
+});
+
 const emit = defineEmits<{
   (e: "edit-operated-line", line: Line): void;
   (e: "add-stop"): void;
@@ -19,6 +23,7 @@ const emit = defineEmits<{
   (e: "move-up", stop: StopWithTime): void;
   (e: "move-down", stop: StopWithTime): void;
 }>();
+
 const firstTerminusIndex = computed(() => {
   return props.sortedStops.findIndex((stop) => stop.isTerminus);
 });
@@ -29,47 +34,74 @@ const terminusCount = computed(() => {
 const hasTooManyTerminuses = computed(() => {
   return terminusCount.value > 2;
 });
+
 const onBaseLineChange = (event: Event) => {
   const select = event.target as HTMLSelectElement;
   emit("select-base-line", select.value);
 };
 
-const exportToPDF = () => {
-  window.print();
+const isCalculating = ref(false);
+
+const calculateTravelTimes = async () => {
+  const stops = props.sortedStops;
+
+  if (stops.length < 2) {
+    alert("Il faut au moins 2 arrêts pour calculer les temps de parcours.");
+    return;
+  }
+
+  const missingCoords = stops.some((s) => !s.stop.lat || !s.stop.lon);
+  if (missingCoords) {
+    alert(
+      "Certains arrêts n'ont pas de coordonnées (latitude/longitude) renseignées.\nVeuillez les éditer avant de lancer le calcul.",
+    );
+    return;
+  }
+
+  isCalculating.value = true;
+
+  try {
+    const coordinatesString = stops
+      .map((s) => `${s.stop.lon},${s.stop.lat}`)
+      .join(";");
+
+    const url = `https://signal.eu.org/osm/eu/route/v1/train/${coordinatesString}?overview=full&geometries=geojson&steps=false`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+    props.desserteWithLine.desserte.geometry = data.routes[0].geometry;
+    if (data.code === "Ok" && data.routes && data.routes.length > 0) {
+      const legs = data.routes[0].legs;
+
+      for (let i = 0; i < legs.length; i++) {
+        const nextStop = stops[i + 1];
+        nextStop.travelTime = Math.round(legs[i].duration);
+      }
+
+      alert("Temps de parcours calculés et appliqués avec succès !");
+    } else {
+      alert("Erreur lors du calcul OSRM : " + (data.message || data.code));
+    }
+  } catch (error) {
+    console.error("Erreur appel OSRM:", error);
+    alert("Erreur réseau ou impossibilité de joindre l'API OSRM.");
+  } finally {
+    isCalculating.value = false;
+  }
 };
 </script>
 
 <template>
   <main class="main-content">
     <section
-      class="card main-service-card printable-area"
+      class="card main-service-card"
       :style="{ '--route-color': desserteWithLine.line.color }"
     >
-      <div class="print-header" style="display: none">
-        <div class="print-direction">
-          <LineLogo
-            :line="desserteWithLine.line"
-            :blink="desserteWithLine.desserte.isLimitedService"
-            class-name="line-logo"
-            size="4rem"
-          />
-          <span class="origin">
-            {{
-              desserteWithLine.desserte.stops.length > 2
-                ? desserteWithLine.desserte.stops[0].stop.name
-                : ""
-            }}
-          </span>
-          <span class="print-arrow">➔</span>
-          {{ desserteWithLine.desserte.direction || "Direction non définie" }}
-        </div>
-      </div>
-
-      <div class="card-header no-print">
+      <div class="card-header">
         <h2>Mon service</h2>
       </div>
 
-      <div class="service-config no-print">
+      <div class="service-config">
         <div class="field-group">
           <label for="base-line-select">Ligne principale</label>
           <div class="operated-line-selector">
@@ -100,7 +132,8 @@ const exportToPDF = () => {
                 {{ desserteWithLine.line.name }} (Actuelle)
               </option>
               <option v-for="line in allLines" :key="line.id" :value="line.id">
-                {{ line.mode.replace('_', ' ').replace('REMPLACEMENT','') }} {{ line.name }}
+                {{ line.mode.replace("_", " ").replace("REMPLACEMENT", "") }}
+                {{ line.name }}
               </option>
             </select>
           </div>
@@ -114,8 +147,13 @@ const exportToPDF = () => {
             v-model="desserteWithLine.desserte.direction"
             placeholder="Ex: Gare de Lyon"
           />
-
-          <!-- Ajout de la case à cocher Service Partiel -->
+          <label for="direction-input">Nom de la mission</label>
+          <input
+            id="direction-input"
+            type="text"
+            v-model="desserteWithLine.desserte.vehicleNumber"
+            placeholder="ex : LEON93, ARNO77"
+          />
           <label class="checkbox-label" for="is-limited-service">
             <input
               id="is-limited-service"
@@ -127,24 +165,52 @@ const exportToPDF = () => {
         </div>
       </div>
 
-      <hr class="divider no-print" />
+      <hr class="divider" />
 
       <div class="card-header">
         <h3>{{ desserteWithLine.desserte.stops.length }} arrêts</h3>
-        <div class="action-buttons no-print">
-          <button class="btn btn-outline" @click="exportToPDF">PDF</button>
+        <div class="action-buttons">
+          <button
+            v-if="areAllStopsWithCoordinates"
+            class="btn btn-outline"
+            @click="calculateTravelTimes"
+            :disabled="isCalculating"
+            :title="'Calcule le temps de parcours entre chaque arrêt avec OpenStreetMap'"
+          >
+            {{ isCalculating ? "Calcul en cours..." : "Calculer les temps" }}
+          </button>
           <button class="btn btn-secondary" @click="emit('add-stop')">
             + Ajouter un arrêt
           </button>
         </div>
       </div>
-<div v-if="hasTooManyTerminuses" class="warning-alert no-print">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <div v-if="hasTooManyTerminuses" class="warning-alert">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+          ></path>
           <line x1="12" y1="9" x2="12" y2="13"></line>
           <line x1="12" y1="17" x2="12.01" y2="17"></line>
         </svg>
-        Vous avez défini {{ terminusCount }} terminus. Un service ne peut avoir au maximum qu'un seul terminus partiel et un terminus final.<br/> Terminus définis : {{ desserteWithLine.desserte.stops.filter(stop => stop.isTerminus).map(stop => stop.stop.name).join(', ') }}.
+        Vous avez défini {{ terminusCount }} terminus. Un service ne peut avoir
+        au maximum qu'un seul terminus partiel et un terminus final.<br />
+        Terminus définis :
+        {{
+          desserteWithLine.desserte.stops
+            .filter((stop) => stop.isTerminus)
+            .map((stop) => stop.stop.name)
+            .join(", ")
+        }}.
       </div>
       <div class="thermometer-list">
         <EditorStopItem
@@ -209,11 +275,15 @@ const exportToPDF = () => {
   border: none;
   transition: all 0.2s ease;
 }
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .btn-secondary {
   background-color: #f0f0f0;
   color: #333;
 }
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background-color: #e0e0e0;
 }
 .btn-outline {
@@ -221,7 +291,7 @@ const exportToPDF = () => {
   color: #495057;
   border: 1px solid #ced4da;
 }
-.btn-outline:hover {
+.btn-outline:hover:not(:disabled) {
   background-color: #f8f9fa;
   border-color: #adb5bd;
 }
@@ -345,62 +415,6 @@ input[type="text"]:focus {
 </style>
 
 <style lang="css">
-@media print {
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  .printable-area,
-  .printable-area * {
-    visibility: visible;
-  }
-
-  .printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px;
-    box-shadow: none !important;
-    border: none !important;
-    background: white !important;
-  }
-
-  .printable-area .no-print {
-    display: none !important;
-  }
-
-  .printable-area .print-header {
-    display: block !important;
-    margin-bottom: 40px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #000;
-  }
-
-  .print-direction {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #000;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .print-arrow {
-    font-size: 3rem;
-  }
-
-  .thermometer-list {
-    page-break-inside: auto;
-  }
-}
-/* Styles pour l'alerte des terminus */
 .warning-alert {
   background-color: #fcf1f1;
   color: #dc3545;
