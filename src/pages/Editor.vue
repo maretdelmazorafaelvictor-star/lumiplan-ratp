@@ -17,6 +17,7 @@ import ApiImportJourneyModal from "../components/Editor/ApiImportJourneyModal.vu
 import EditorStopList from "../components/Editor/EditorStopList.vue";
 import AutosaveRestoreModal from "../components/Editor/AutosaveRestoreModal.vue";
 import IdfmCatalogModal from "../components/Editor/IdfmCatalogModal.vue";
+import BulbmaxPresetsModal from "../components/Editor/BulbmaxPresetsModal.vue";
 import EditorTrafficInfo from "../components/Editor/EditorTrafficInfo.vue";
 import { normalizeSaveFile, SAVE_FILE_VERSION, sortedLines } from "../utils";
 import { Api } from "../api.ts";
@@ -77,6 +78,11 @@ const stopModalRef = ref<InstanceType<typeof StopEditorModal> | null>(null);
 const idfmCatalogRef = ref<InstanceType<typeof IdfmCatalogModal> | null>(null);
 
 const openIdfmCatalog = () => idfmCatalogRef.value?.open();
+const bulbmaxPresetsRef = ref<InstanceType<typeof BulbmaxPresetsModal> | null>(null);
+const openBulbmaxPresets = () => bulbmaxPresetsRef.value?.open();
+const loadBulbmaxPreset = (saveFile: SaveFile) => {
+  loadData(saveFile, saveFile.header.name);
+};
 
 const addCatalogLines = (newLines: Line[]) => {
   newLines.forEach((l) => {
@@ -450,6 +456,7 @@ const deleteLine = (line: Line) => {
       :existing-line-ids="lines.map((l) => l.id)"
       @add-lines="addCatalogLines"
     />
+    <BulbmaxPresetsModal ref="bulbmaxPresetsRef" @load="loadBulbmaxPreset" />
     <ApiImportJourneyModal ref="apiModalRef" @import="handleApiImport" />
     <AutosaveRestoreModal
       ref="autosaveModalRef"
@@ -506,6 +513,7 @@ const deleteLine = (line: Line) => {
           @add-line="addLine"
           @edit-line="openLineEditorModal"
           @open-idfm-catalog="openIdfmCatalog"
+          @open-bulbmax-presets="openBulbmaxPresets"
           @copy-export="copyToClipboard"
           @select-base-line="handleSelectBaseLine"
           @download-export="downloadJson"

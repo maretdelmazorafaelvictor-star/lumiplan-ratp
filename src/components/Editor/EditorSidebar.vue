@@ -15,6 +15,7 @@ const emit = defineEmits<{
   (e: "update:fileName", value: string): void;
   (e: "add-line"): void;
   (e: "open-idfm-catalog"): void;
+  (e: "open-bulbmax-presets"): void;
   (e: "edit-line", line: Line): void;
   (e: "delete-line", line: Line): void;
   (e: "select-base-line", lineId: string): void;
@@ -115,6 +116,13 @@ const onDrop = (event: DragEvent) => {
           @click="emit('open-idfm-catalog')"
         >
           Catalogue IDFM
+        </button>
+        <button
+          class="btn btn-sm"
+          title="Charger une ligne complète issue des presets BULB-MAX"
+          @click="emit('open-bulbmax-presets')"
+        >
+          Lignes préconfigurées
         </button>
       </div>
 
