@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { REALTIME_API_ENABLED } from "../../config";
 import { ref, computed } from "vue";
 import { Line, Mode } from "../../types";
 import LineLogo from "../Other/LineLogo.vue";
@@ -217,7 +218,11 @@ const onDrop = (event: DragEvent) => {
         <h2>Importer</h2>
       </div>
       <div class="import-actions">
-        <button class="btn btn-primary mb-16" @click="emit('open-api')">
+        <button
+          v-if="REALTIME_API_ENABLED"
+          class="btn btn-primary mb-16"
+          @click="emit('open-api')"
+        >
           Importer depuis l'API
         </button>
         <div
