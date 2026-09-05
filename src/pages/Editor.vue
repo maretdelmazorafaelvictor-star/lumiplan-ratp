@@ -16,6 +16,7 @@ import EditorSidebar from "../components/Editor/EditorSidebar.vue";
 import ApiImportJourneyModal from "../components/Editor/ApiImportJourneyModal.vue";
 import EditorStopList from "../components/Editor/EditorStopList.vue";
 import AutosaveRestoreModal from "../components/Editor/AutosaveRestoreModal.vue";
+import IdfmCatalogModal from "../components/Editor/IdfmCatalogModal.vue";
 import EditorTrafficInfo from "../components/Editor/EditorTrafficInfo.vue";
 import { normalizeSaveFile, SAVE_FILE_VERSION, sortedLines } from "../utils";
 import { Api } from "../api.ts";
@@ -73,6 +74,17 @@ const selectedLineInModal = ref<Line | null>(null);
 const selectedStopInModal = ref<StopWithTime | null>(null);
 const lineModalRef = ref<InstanceType<typeof LineEditorModal> | null>(null);
 const stopModalRef = ref<InstanceType<typeof StopEditorModal> | null>(null);
+const idfmCatalogRef = ref<InstanceType<typeof IdfmCatalogModal> | null>(null);
+
+const openIdfmCatalog = () => idfmCatalogRef.value?.open();
+
+const addCatalogLines = (newLines: Line[]) => {
+  newLines.forEach((l) => {
+    if (!_lines.value.find((existing) => existing.id === l.id)) {
+      _lines.value.push(l);
+    }
+  });
+};
 const apiModalRef = ref<InstanceType<typeof ApiImportJourneyModal> | null>(
   null,
 );
@@ -433,6 +445,11 @@ const deleteLine = (line: Line) => {
       :stop="selectedStopInModal"
     />
     <NewsModal v-if="isNewsModalOpen" @close="isNewsModalOpen = false" />
+    <IdfmCatalogModal
+      ref="idfmCatalogRef"
+      :existing-line-ids="lines.map((l) => l.id)"
+      @add-lines="addCatalogLines"
+    />
     <ApiImportJourneyModal ref="apiModalRef" @import="handleApiImport" />
     <AutosaveRestoreModal
       ref="autosaveModalRef"
@@ -488,6 +505,7 @@ const deleteLine = (line: Line) => {
           :downloadSuccess="downloadSuccess"
           @add-line="addLine"
           @edit-line="openLineEditorModal"
+          @open-idfm-catalog="openIdfmCatalog"
           @copy-export="copyToClipboard"
           @select-base-line="handleSelectBaseLine"
           @download-export="downloadJson"

@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "update:fileName", value: string): void;
   (e: "add-line"): void;
+  (e: "open-idfm-catalog"): void;
   (e: "edit-line", line: Line): void;
   (e: "delete-line", line: Line): void;
   (e: "select-base-line", lineId: string): void;
@@ -107,6 +108,13 @@ const onDrop = (event: DragEvent) => {
         <h2>Lignes disponibles</h2>
         <button class="btn btn-primary btn-sm" @click="emit('add-line')">
           + Nouvelle
+        </button>
+        <button
+          class="btn btn-sm"
+          title="Ajouter des lignes IDFM prêtes à l'emploi"
+          @click="emit('open-idfm-catalog')"
+        >
+          Catalogue IDFM
         </button>
       </div>
 
