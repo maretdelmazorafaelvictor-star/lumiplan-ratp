@@ -225,6 +225,8 @@ const loadJourney = () => {
 .bulbmax-presets {
   border: none;
   border-radius: 12px;
+  background: #ffffff;
+  color: #1a1a1a;
   padding: 24px;
   width: min(520px, 92vw);
   max-height: 84vh;
@@ -273,6 +275,7 @@ const loadJourney = () => {
 }
 
 .preset-item {
+  color: #1a1a1a;
   display: flex;
   align-items: center;
   gap: 10px;

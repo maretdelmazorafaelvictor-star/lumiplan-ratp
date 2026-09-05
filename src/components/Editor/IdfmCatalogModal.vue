@@ -87,6 +87,8 @@ const addAll = () => {
 .idfm-catalog {
   border: none;
   border-radius: 12px;
+  background: #ffffff;
+  color: #1a1a1a;
   padding: 24px;
   width: min(560px, 92vw);
   max-height: 84vh;
@@ -149,6 +151,7 @@ const addAll = () => {
 }
 
 .catalog-line {
+  color: #1a1a1a;
   display: flex;
   align-items: center;
   gap: 6px;
