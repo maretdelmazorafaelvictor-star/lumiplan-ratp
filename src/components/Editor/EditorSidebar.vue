@@ -111,14 +111,14 @@ const onDrop = (event: DragEvent) => {
           + Nouvelle
         </button>
         <button
-          class="btn btn-sm"
+          class="btn btn-secondary btn-sm"
           title="Ajouter des lignes IDFM prêtes à l'emploi"
           @click="emit('open-idfm-catalog')"
         >
           Catalogue IDFM
         </button>
         <button
-          class="btn btn-sm"
+          class="btn btn-secondary btn-sm"
           title="Charger une ligne complète issue des presets BULB-MAX"
           @click="emit('open-bulbmax-presets')"
         >
@@ -255,8 +255,10 @@ const onDrop = (event: DragEvent) => {
 }
 .card-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 20px;
 }
 .card-header h2 {
@@ -292,6 +294,14 @@ const onDrop = (event: DragEvent) => {
 .btn-primary {
   background-color: #007bff;
   color: white;
+}
+.btn-secondary {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+}
+.btn-secondary:hover {
+  background-color: #e5e7eb;
 }
 .btn-primary:hover {
   background-color: #0056b3;
