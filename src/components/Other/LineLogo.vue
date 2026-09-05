@@ -38,6 +38,7 @@ const isLineSpecial = computed(() => {
     "ORLYBUS",
     "FUN",
     "ORLYVAL",
+    "CDGVAL",
     "TVM",
     "ROISSYBUS",
     "CHARONNE",

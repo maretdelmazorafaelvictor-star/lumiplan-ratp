@@ -86,7 +86,7 @@ export const IDFM_CATALOG: Record<string, CatalogEntry[]> = {
     e("idfm:tramtrain:t14", "T14", "#00b397", DARK_TEXT, Mode.TRAM_TRAIN),
   ],
   "VAL & câbles": [
-    e("idfm:val:cdgval", "CDGVAL", "#f78f4b", DARK_TEXT, Mode.VAL),
+    e("idfm:val:cdgval", "CDG VAL", "#f78f4b", DARK_TEXT, Mode.VAL),
     e("idfm:val:orlyval", "ORLYVAL", "#87d3df", DARK_TEXT, Mode.VAL),
     e("idfm:funicular:montmartre", "FUN", "#bb4a9b", LIGHT_TEXT, Mode.FUNICULAR),
     e("idfm:gondola:c1", "C1", "#4c90cd", LIGHT_TEXT, Mode.GONDOLA),
