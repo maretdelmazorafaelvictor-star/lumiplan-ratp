@@ -114,6 +114,10 @@ const loadJourney = () => {
       stop,
       timeOfArrival: arrival.toISOString(),
       timeOfDeparture: new Date(arrival.getTime() + 30_000).toISOString(),
+      // Temps depuis l'arrêt précédent : alimente le mode de progression
+      // par le temps et l'affichage « arrivée dans X min ». Ajustable
+      // ensuite arrêt par arrêt dans les propriétés d'arrêt.
+      travelTime: i === 0 ? 0 : Math.round(intervalMinutes.value * 60),
       isTerminus: i === lastIndex,
       isFirstStop: i === 0,
       isStopSkipped: false,
