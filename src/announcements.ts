@@ -11,6 +11,12 @@ const STORE = "recordings";
 export const normalizeStopName = (name: string): string =>
   name.trim().toLowerCase().replace(/\s+/g, " ");
 
+/** Variante d'annonce : fin haute (approche) ou fin basse (arrivée). */
+export type AnnouncementVariant = "haute" | "basse";
+
+const key = (stopName: string, variant: AnnouncementVariant): string =>
+  `${normalizeStopName(stopName)}|${variant}`;
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
@@ -41,30 +47,40 @@ function withStore<T>(
 }
 
 export const Announcements = {
-  async get(stopName: string): Promise<Blob | null> {
+  async get(
+    stopName: string,
+    variant: AnnouncementVariant,
+  ): Promise<Blob | null> {
     try {
       const result = await withStore("readonly", (s) =>
+        s.get(key(stopName, variant)),
+      );
+      if (result) return result as Blob;
+      // Rétrocompatibilité : anciens enregistrements sans variante
+      const legacy = await withStore("readonly", (s) =>
         s.get(normalizeStopName(stopName)),
       );
-      return (result as Blob) ?? null;
+      return (legacy as Blob) ?? null;
     } catch {
       return null;
     }
   },
 
-  async set(stopName: string, audio: Blob): Promise<void> {
-    await withStore("readwrite", (s) =>
-      s.put(audio, normalizeStopName(stopName)),
-    );
+  async set(
+    stopName: string,
+    variant: AnnouncementVariant,
+    audio: Blob,
+  ): Promise<void> {
+    await withStore("readwrite", (s) => s.put(audio, key(stopName, variant)));
   },
 
-  async remove(stopName: string): Promise<void> {
-    await withStore("readwrite", (s) =>
-      s.delete(normalizeStopName(stopName)),
-    );
+  async remove(stopName: string, variant: AnnouncementVariant): Promise<void> {
+    await withStore("readwrite", (s) => s.delete(key(stopName, variant)));
+    await withStore("readwrite", (s) => s.delete(normalizeStopName(stopName)));
   },
 
-  async listNames(): Promise<string[]> {
+  /** Clés existantes, au format "nom|variante". */
+  async listKeys(): Promise<string[]> {
     try {
       const keys = await withStore("readonly", (s) => s.getAllKeys());
       return (keys as IDBValidKey[]).map(String);

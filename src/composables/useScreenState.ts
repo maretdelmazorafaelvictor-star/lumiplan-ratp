@@ -337,12 +337,12 @@ export function useScreenState(
         lastStopVisitedId !== stopId
       ) {
         lastNextAnnouncedId = stopId;
-        AudioManager.announceStop(head.stop.name);
+        AudioManager.announceStop(head.stop.name, "haute");
       }
 
       if (newState === "AT_STOP" && lastArrivalAnnouncedId !== stopId) {
         lastArrivalAnnouncedId = stopId;
-        AudioManager.announceStop(head.stop.name);
+        AudioManager.announceStop(head.stop.name, "basse");
       }
     },
   );

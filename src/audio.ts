@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { Announcements } from "./announcements";
+import { AnnouncementVariant, Announcements } from "./announcements";
 import { cleanId } from "./utils";
 
 const initialSoundState =
@@ -111,15 +111,19 @@ export class AudioManager {
   };
 
   /** Annonce une station : enregistrement personnalisé s'il existe,
-   *  sinon synthèse vocale. */
-  static announceStop = async (stopName: string) => {
+   *  sinon synthèse vocale. La variante « haute » (approche) prend une
+   *  intonation montante, la « basse » (arrivée) une descendante. */
+  static announceStop = async (
+    stopName: string,
+    variant: AnnouncementVariant,
+  ) => {
     if (!this.areSoundsEnabled()) return;
 
-    const custom = await Announcements.get(stopName);
+    const custom = await Announcements.get(stopName, variant);
     if (custom) {
       this.playBlob(custom);
     } else {
-      this.speak(stopName);
+      this.speak(variant === "haute" ? `${stopName} ?` : `${stopName}.`);
     }
   };
 

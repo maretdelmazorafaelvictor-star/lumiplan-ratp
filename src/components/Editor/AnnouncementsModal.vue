@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
-import { Announcements, normalizeStopName } from "../../announcements";
+import {
+  AnnouncementVariant,
+  Announcements,
+  normalizeStopName,
+} from "../../announcements";
 import { StopWithTime } from "../../types";
 
 /**
@@ -14,8 +18,15 @@ const props = defineProps<{
 }>();
 
 const dialogRef = ref<HTMLDialogElement | null>(null);
-const recordedNames = ref<Set<string>>(new Set());
-const recordingFor = ref<string | null>(null);
+const recordedKeys = ref<Set<string>>(new Set());
+const recordingFor = ref<{ name: string; variant: AnnouncementVariant } | null>(
+  null,
+);
+
+const VARIANTS: { id: AnnouncementVariant; label: string }[] = [
+  { id: "haute", label: "Fin haute (approche)" },
+  { id: "basse", label: "Fin basse (arrivée)" },
+];
 const micError = ref(false);
 
 let mediaRecorder: MediaRecorder | null = null;
@@ -25,9 +36,7 @@ let chunks: Blob[] = [];
 const open = async () => {
   dialogRef.value?.showModal();
   micError.value = false;
-  recordedNames.value = new Set(
-    (await Announcements.listNames()).map(normalizeStopName),
-  );
+  recordedKeys.value = new Set(await Announcements.listKeys());
 };
 const close = () => {
   stopRecording(false);
@@ -48,10 +57,18 @@ const stopNames = computed(() => {
   return names;
 });
 
-const hasRecording = (name: string) =>
-  recordedNames.value.has(normalizeStopName(name));
+const hasRecording = (name: string, variant: AnnouncementVariant) =>
+  recordedKeys.value.has(`${normalizeStopName(name)}|${variant}`) ||
+  recordedKeys.value.has(normalizeStopName(name));
 
-const startRecording = async (name: string) => {
+const markRecorded = (name: string, variant: AnnouncementVariant) => {
+  recordedKeys.value = new Set([
+    ...recordedKeys.value,
+    `${normalizeStopName(name)}|${variant}`,
+  ]);
+};
+
+const startRecording = async (name: string, variant: AnnouncementVariant) => {
   stopRecording(false);
   micError.value = false;
   try {
@@ -69,15 +86,13 @@ const startRecording = async (name: string) => {
       type: mediaRecorder?.mimeType || "audio/webm",
     });
     if (blob.size > 0 && recordingFor.value) {
-      await Announcements.set(recordingFor.value, blob);
-      recordedNames.value = new Set([
-        ...recordedNames.value,
-        normalizeStopName(recordingFor.value),
-      ]);
+      const { name: forName, variant: forVariant } = recordingFor.value;
+      await Announcements.set(forName, forVariant, blob);
+      markRecorded(forName, forVariant);
     }
     recordingFor.value = null;
   };
-  recordingFor.value = name;
+  recordingFor.value = { name, variant };
   mediaRecorder.start();
 };
 
@@ -91,20 +106,21 @@ const stopRecording = (save = true) => {
   mediaRecorder = null;
 };
 
-const importFile = async (name: string, event: Event) => {
+const importFile = async (
+  name: string,
+  variant: AnnouncementVariant,
+  event: Event,
+) => {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = "";
   if (!file) return;
-  await Announcements.set(name, file);
-  recordedNames.value = new Set([
-    ...recordedNames.value,
-    normalizeStopName(name),
-  ]);
+  await Announcements.set(name, variant, file);
+  markRecorded(name, variant);
 };
 
-const preview = async (name: string) => {
-  const blob = await Announcements.get(name);
+const preview = async (name: string, variant: AnnouncementVariant) => {
+  const blob = await Announcements.get(name, variant);
   if (!blob) return;
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
@@ -112,11 +128,12 @@ const preview = async (name: string) => {
   audio.play();
 };
 
-const removeRecording = async (name: string) => {
-  await Announcements.remove(name);
-  const next = new Set(recordedNames.value);
+const removeRecording = async (name: string, variant: AnnouncementVariant) => {
+  await Announcements.remove(name, variant);
+  const next = new Set(recordedKeys.value);
+  next.delete(`${normalizeStopName(name)}|${variant}`);
   next.delete(normalizeStopName(name));
-  recordedNames.value = next;
+  recordedKeys.value = next;
 };
 
 onBeforeUnmount(() => stopRecording(false));
@@ -144,55 +161,62 @@ onBeforeUnmount(() => stopRecording(false));
       Aucun arrêt dans la course actuelle.
     </p>
 
-    <div class="stop-row" v-for="name in stopNames" :key="name">
-      <span class="stop-name">
-        {{ name }}
-        <span v-if="hasRecording(name)" class="badge">annonce perso</span>
-        <span v-else class="badge badge-tts">synthèse vocale</span>
-      </span>
-      <span class="actions">
-        <button
-          v-if="recordingFor !== name"
-          class="btn"
-          title="Enregistrer au micro"
-          @click="startRecording(name)"
-        >
-          ● Enregistrer
-        </button>
-        <button
-          v-else
-          class="btn btn-recording"
-          title="Terminer l'enregistrement"
-          @click="stopRecording(true)"
-        >
-          ■ Terminer
-        </button>
-        <label class="btn" title="Importer un fichier audio">
-          Importer
-          <input
-            type="file"
-            accept="audio/*"
-            class="file-input"
-            @change="importFile(name, $event)"
-          />
-        </label>
-        <button
-          class="btn"
-          :disabled="!hasRecording(name)"
-          title="Écouter"
-          @click="preview(name)"
-        >
-          ▶
-        </button>
-        <button
-          class="btn"
-          :disabled="!hasRecording(name)"
-          title="Supprimer l'annonce"
-          @click="removeRecording(name)"
-        >
-          🗑
-        </button>
-      </span>
+    <div class="stop-block" v-for="name in stopNames" :key="name">
+      <div class="stop-name">{{ name }}</div>
+      <div class="stop-row" v-for="v in VARIANTS" :key="v.id">
+        <span class="variant-label">
+          {{ v.label }}
+          <span v-if="hasRecording(name, v.id)" class="badge">perso</span>
+          <span v-else class="badge badge-tts">synthèse</span>
+        </span>
+        <span class="actions">
+          <button
+            v-if="
+              !recordingFor ||
+              recordingFor.name !== name ||
+              recordingFor.variant !== v.id
+            "
+            class="btn"
+            title="Enregistrer au micro"
+            @click="startRecording(name, v.id)"
+          >
+            ● Enregistrer
+          </button>
+          <button
+            v-else
+            class="btn btn-recording"
+            title="Terminer l'enregistrement"
+            @click="stopRecording(true)"
+          >
+            ■ Terminer
+          </button>
+          <label class="btn" title="Importer un fichier audio">
+            Importer
+            <input
+              type="file"
+              accept="audio/*"
+              class="file-input"
+              @change="importFile(name, v.id, $event)"
+            />
+          </label>
+          <button
+            class="btn"
+            :disabled="!hasRecording(name, v.id)"
+            title="Écouter"
+            @click="preview(name, v.id)"
+          >
+            ▶
+          </button>
+          <button
+            class="btn"
+            :disabled="!hasRecording(name, v.id)"
+            title="Supprimer l'annonce"
+            @click="removeRecording(name, v.id)"
+          >
+            🗑
+          </button>
+        </span>
+      </div>
     </div>
   </dialog>
 </template>
@@ -246,16 +270,26 @@ onBeforeUnmount(() => stopRecording(false));
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 3px 0;
   flex-wrap: wrap;
 }
 
+.stop-block {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
 .stop-name {
-  font-weight: 600;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.variant-label {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 0.9em;
+  color: #374151;
 }
 
 .badge {
