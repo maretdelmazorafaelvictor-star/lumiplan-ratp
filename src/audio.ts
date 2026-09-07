@@ -89,6 +89,30 @@ export class AudioManager {
 
     this.activeAudios.clear();
     this.currentAudio = null;
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  /** Prononce un texte en français via la synthèse vocale du navigateur.
+   *  Respecte le bouton haut-parleur ; une nouvelle annonce interrompt
+   *  la précédente. */
+  static speak = (text: string) => {
+    if (!this.areSoundsEnabled()) return;
+    if (!("speechSynthesis" in window)) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "fr-FR";
+    const frenchVoice = window.speechSynthesis
+      .getVoices()
+      .find((v) => v.lang.startsWith("fr"));
+    if (frenchVoice) utterance.voice = frenchVoice;
+    utterance.rate = 0.95;
+
+    window.speechSynthesis.speak(utterance);
   };
 
   static playStopName = (

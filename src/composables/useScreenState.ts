@@ -308,6 +308,45 @@ export function useScreenState(
     }
   };
 
+  /* Annonces vocales des arrêts : « Prochain arrêt : X » à l'approche,
+     rappel du nom à l'arrivée. Clé (état + id d'arrêt) pour ne jamais
+     annoncer deux fois ni annoncer l'ancien arrêt pendant les 2 s où la
+     liste n'est pas encore décalée. */
+  let lastNextAnnouncedId: string | null = null;
+  let lastArrivalAnnouncedId: string | null = null;
+  let lastStopVisitedId: string | null = null;
+
+  watch(
+    () =>
+      [state.value, desserte.value.stops[0]?.stop.id ?? null] as [
+        ScreenState,
+        string | null,
+      ],
+    ([newState, stopId]) => {
+      if (!stopId) return;
+      const head = desserte.value.stops[0];
+      if (!head) return;
+
+      if (newState === "AT_STOP" || newState === "FIRST_STOP") {
+        lastStopVisitedId = stopId;
+      }
+
+      if (
+        newState === "NOT_AT_STOP" &&
+        lastNextAnnouncedId !== stopId &&
+        lastStopVisitedId !== stopId
+      ) {
+        lastNextAnnouncedId = stopId;
+        AudioManager.speak(`Prochain arrêt : ${head.stop.name}`);
+      }
+
+      if (newState === "AT_STOP" && lastArrivalAnnouncedId !== stopId) {
+        lastArrivalAnnouncedId = stopId;
+        AudioManager.speak(head.stop.name);
+      }
+    },
+  );
+
   watch(state, (newState) => {
     if (
       newState === "FIRST_STOP" &&
