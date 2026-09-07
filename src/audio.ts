@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { Announcements } from "./announcements";
 import { cleanId } from "./utils";
 
 const initialSoundState =
@@ -92,6 +93,33 @@ export class AudioManager {
 
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
+    }
+  };
+
+  /** Joue un blob audio (annonce enregistrée par l'utilisateur). */
+  static playBlob = (blob: Blob) => {
+    if (!this.areSoundsEnabled()) return;
+
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    this.activeAudios.add(audio);
+    audio.onended = () => {
+      this.activeAudios.delete(audio);
+      URL.revokeObjectURL(url);
+    };
+    audio.play().catch(() => URL.revokeObjectURL(url));
+  };
+
+  /** Annonce une station : enregistrement personnalisé s'il existe,
+   *  sinon synthèse vocale. */
+  static announceStop = async (stopName: string) => {
+    if (!this.areSoundsEnabled()) return;
+
+    const custom = await Announcements.get(stopName);
+    if (custom) {
+      this.playBlob(custom);
+    } else {
+      this.speak(stopName);
     }
   };
 

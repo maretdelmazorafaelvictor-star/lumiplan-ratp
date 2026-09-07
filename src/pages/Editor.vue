@@ -18,6 +18,7 @@ import EditorStopList from "../components/Editor/EditorStopList.vue";
 import AutosaveRestoreModal from "../components/Editor/AutosaveRestoreModal.vue";
 import IdfmCatalogModal from "../components/Editor/IdfmCatalogModal.vue";
 import BulbmaxPresetsModal from "../components/Editor/BulbmaxPresetsModal.vue";
+import AnnouncementsModal from "../components/Editor/AnnouncementsModal.vue";
 import EditorTrafficInfo from "../components/Editor/EditorTrafficInfo.vue";
 import { cleanId, normalizeSaveFile, SAVE_FILE_VERSION, sortedLines } from "../utils";
 import { Api } from "../api.ts";
@@ -80,6 +81,8 @@ const idfmCatalogRef = ref<InstanceType<typeof IdfmCatalogModal> | null>(null);
 const openIdfmCatalog = () => idfmCatalogRef.value?.open();
 const bulbmaxPresetsRef = ref<InstanceType<typeof BulbmaxPresetsModal> | null>(null);
 const openBulbmaxPresets = () => bulbmaxPresetsRef.value?.open();
+const announcementsRef = ref<InstanceType<typeof AnnouncementsModal> | null>(null);
+const openAnnouncements = () => announcementsRef.value?.open();
 const loadBulbmaxPreset = (saveFile: SaveFile) => {
   loadData(saveFile, saveFile.header.name);
 };
@@ -454,6 +457,10 @@ const deleteLine = (line: Line) => {
       @add-lines="addCatalogLines"
     />
     <BulbmaxPresetsModal ref="bulbmaxPresetsRef" @load="loadBulbmaxPreset" />
+    <AnnouncementsModal
+      ref="announcementsRef"
+      :stops="desserteWithLine.desserte.stops"
+    />
     <ApiImportJourneyModal ref="apiModalRef" @import="handleApiImport" />
     <AutosaveRestoreModal
       ref="autosaveModalRef"
@@ -511,6 +518,7 @@ const deleteLine = (line: Line) => {
           @edit-line="openLineEditorModal"
           @open-idfm-catalog="openIdfmCatalog"
           @open-bulbmax-presets="openBulbmaxPresets"
+          @open-announcements="openAnnouncements"
           @copy-export="copyToClipboard"
           @select-base-line="handleSelectBaseLine"
           @download-export="downloadJson"

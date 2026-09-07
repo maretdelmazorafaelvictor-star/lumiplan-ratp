@@ -17,6 +17,7 @@ const emit = defineEmits<{
   (e: "add-line"): void;
   (e: "open-idfm-catalog"): void;
   (e: "open-bulbmax-presets"): void;
+  (e: "open-announcements"): void;
   (e: "edit-line", line: Line): void;
   (e: "delete-line", line: Line): void;
   (e: "select-base-line", lineId: string): void;
@@ -124,6 +125,13 @@ const onDrop = (event: DragEvent) => {
           @click="emit('open-bulbmax-presets')"
         >
           Lignes préconfigurées
+        </button>
+        <button
+          class="btn btn-secondary btn-sm"
+          title="Enregistrer vos propres annonces vocales par station"
+          @click="emit('open-announcements')"
+        >
+          Annonces
         </button>
       </div>
 
